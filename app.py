@@ -1,132 +1,71 @@
 import os
 import random
-
+import time
+from colorama import Fore, Style
 
 class Chateau:
-    # Initialisation de la classe Chateau
     def __init__(self):
-        self.pv = 100  # Points de vie du château
-        self.bouclier = False  # Indicateur si le bouclier est actif
-        self.piege = False  # Indicateur si un piège est posé
-        self.double_attaque = False  # Indicateur si une double attaque est préparée
+        self.pv, self.bouclier, self.piege, self.double_attaque = 100, False, False, False
 
-    # Méthode pour attaquer un autre château
     def attaquer(self, autre_chateau):
-        degats = 40 if self.double_attaque else 20  # Dégâts de l'attaque
-        if autre_chateau.bouclier:  # Si le château attaqué a un bouclier, les dégâts sont réduits de moitié
-            degats /= 2
-        autre_chateau.pv -= degats  # Soustraction des dégâts aux points de vie du château attaqué
-        if autre_chateau.piege:  # Si le château attaqué a un piège, le château attaquant perd 15 points de vie
-            self.pv -= 15
-            autre_chateau.piege = False  # Le piège est désactivé après utilisation
-        self.double_attaque = False  # La double attaque est désactivée après utilisation
+        degats = 40 if self.double_attaque else 20
+        degats /= 2 if autre_chateau.bouclier else 1
+        autre_chateau.pv -= degats
+        print(Fore.RED + 'BOOM!' + Style.RESET_ALL)
+        self.pv -= 15 if autre_chateau.piege else 0; autre_chateau.piege = False
+        self.double_attaque = False
+        
+    def renforcer(self): self.pv += 10; print(Fore.GREEN + 'Renforcement...' + Style.RESET_ALL); time.sleep(1)
 
-    # Méthode pour renforcer le château (augmente les points de vie)
-    def renforcer(self):
-        self.pv += 10
+    def activer_bouclier(self): self.bouclier = True; print(Fore.BLUE + 'Bouclier activé!' + Style.RESET_ALL); time.sleep(1)
 
-    # Méthode pour activer le bouclier
-    def activer_bouclier(self):
-        self.bouclier = True
+    def poser_piege(self): self.piege = True; print(Fore.YELLOW + 'Piège posé!' + Style.RESET_ALL); time.sleep(1)
 
-    # Méthode pour poser un piège
-    def poser_piege(self):
-        self.piege = True
+    def preparer_double_attaque(self): self.double_attaque = True; print(Fore.MAGENTA + 'Double attaque préparée!' + Style.RESET_ALL); time.sleep(1)
 
-    # Méthode pour préparer une double attaque
-    def preparer_double_attaque(self):
-        self.double_attaque = True
-
-    # Méthode pour vérifier si le château est détruit (points de vie <= 0)
-    def est_detruit(self):
-        return self.pv <= 0
+    est_detruit = lambda self: self.pv <= 0
 
 def decision_bot(chateau_bot, chateau_joueur):
-    random_factor = random.random()  # Génère un nombre aléatoire entre 0 et 1
-    
-    if chateau_bot.pv < 40:
-        if random_factor < 0.8:  # 80% de chance de renforcer si les points de vie sont bas
-            return "r"
-        else:
-            return "a"
-    elif chateau_joueur.pv < 40:
-        if random_factor < 0.7:  # 70% de chance d'attaquer si les points de vie du joueur sont bas
-            return "a"
-        else:
-            return "b"
-    else:
-        if random_factor < 0.4:  # 40% de chance d'activer le bouclier si les points de vie sont suffisants
-            return "b"
-        else:
-            return "a"
+    random_factor = random.random()
+    if chateau_bot.pv < 40: return "r" if random_factor < 0.8 else "a"
+    elif chateau_joueur.pv < 40: return "a" if random_factor < 0.7 else "b"
+    else: return "b" if random_factor < 0.4 else "a"
 
 
 def affichage_ascii(chateau1, chateau2):
-    # Affichage de l'état des châteaux en utilisant des coeurs pour représenter les points de vie
-    if (int(chateau1.pv) // 10) > (int(chateau2.pv) // 10):
-        trait = (int(chateau1.pv) // 10)
-    else :
-        trait = (int(chateau2.pv) // 10)
+    trait = max(int(chateau1.pv) // 10, int(chateau2.pv) // 10)
     print("--------------------"+ "-" * trait)
-    print("| Votre chateau : " + "♥" * (int(chateau1.pv) // 10))
-    print("| Château Ennemi : " + "♥" * (int(chateau2.pv) // 10))
+    print("| Votre chateau : " + "♥" * (int(chateau1.pv) // 10) + " " * (trait - int(chateau1.pv) // 10))
+    print("| Château Ennemi : " + "♥" * (int(chateau2.pv) // 10) + " " * (trait - int(chateau2.pv) // 10))
     print("--------------------"+ "-" * trait)
 
 def jeu():
-    # Initialisation du jeu
-    chateau1 = Chateau()  # Création du château du joueur
-    chateau2 = Chateau()  # Création du château du bot
-    tour = 1  # Initialisation du compteur de tours
-
-    # Boucle de jeu qui continue tant qu'aucun château n'est détruit
+    chateau1, chateau2, tour = Chateau(), Chateau(), 1
     while not (chateau1.est_detruit() or chateau2.est_detruit()):
-        print(f"Tour {tour}")  # Affichage du numéro du tour
-        affichage_ascii(chateau1, chateau2)  # Affichage de l'état des châteaux
-
-        # Le joueur choisit son action
-        action = input("\033[32mChoisissez une action - attaquer (a), renforcer (r), bouclier (b), piège (p), double attaque (d) : \033[31m")
+        print(f"\n\nTour {tour}\n")
+        affichage_ascii(chateau1, chateau2)
+        print("\nActions possibles : attaquer (a), renforcer (r), bouclier (b), piège (p), double attaque (d)\n")
+        action = input("\033[32mChoisissez une action : \033[31m")
         print("\033[37m")
-        if action == "a":  # Si le joueur choisit d'attaquer
-            chateau1.attaquer(chateau2)
-        elif action == "r":  # Si le joueur choisit de renforcer
-            chateau1.renforcer()
-        elif action == "b":  # Si le joueur choisit d'activer le bouclier
-            chateau1.activer_bouclier()
-        elif action == "p":  # Si le joueur choisit de poser un piège
-            chateau1.poser_piege()
-        elif action == "d":  # Si le joueur choisit de préparer une double attaque
-            chateau1.preparer_double_attaque()
+        if action == "a": chateau1.attaquer(chateau2)
+        elif action == "r": chateau1.renforcer()
+        elif action == "b": chateau1.activer_bouclier()
+        elif action == "p": chateau1.poser_piege()
+        elif action == "d": chateau1.preparer_double_attaque()
 
 
         os.system("clear")
-        # Si le château du bot est détruit, le joueur gagne
-        if chateau2.est_detruit():
-            print("Château 2 (Bot) est détruit! Joueur gagne!")
-            break
-
-        # Le bot choisit son action
+        if chateau2.est_detruit(): print("Château 2 (Bot) est détruit! Joueur gagne!"); break
         action_bot = decision_bot(chateau2, chateau1)
-        if action_bot == "a":  # Si le bot choisit d'attaquer
-            print("\033[31mBot attaque!\033[37m")
-            chateau2.attaquer(chateau1)
-        elif action_bot == "r":  # Si le bot choisit de renforcer
-            print("\033[31mBot renforce!\033[37m")
-            chateau2.renforcer()
-        elif action_bot == "b":  # Si le bot choisit d'activer le bouclier
-            print("\033[31mBot active le bouclier!\033[37m")
-            chateau2.activer_bouclier()
-
-        # Si le château du joueur est détruit, le bot gagne
-        if chateau1.est_detruit():
-            os.system("clear")
-            print("Château 1 (Joueur) est détruit! Bot gagne!")
-            
-            break
-
-        tour += 1  # Incrémentation du compteur de tours
+        if action_bot == "a": print("\033[31mBot attaque!\033[37m"); chateau2.attaquer(chateau1)
+        elif action_bot == "r": print("\033[31mBot renforce!\033[37m"); chateau2.renforcer()
+        elif action_bot == "b": print("\033[31mBot active le bouclier!\033[37m"); chateau2.activer_bouclier()
+        if chateau1.est_detruit(): os.system("clear"); print("Château 1 (Joueur) est détruit! Bot gagne!"); break
+        tour += 1
 
 if __name__ == "__main__":
     # Si le script est exécuté directement, on lance le jeu
     jeu()
+
 
 
