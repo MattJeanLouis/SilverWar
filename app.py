@@ -5,8 +5,9 @@ from colorama import Fore, Style, init
 
 init(autoreset=True)
 class Chateau:
-    def __init__(self):
-        self.pv, self.bouclier, self.piege, self.double_attaque = 100, False, False, False
+    def __init__(self, nom):
+        self.nom = nom
+        self.pv, self.bouclier, self.piege, self.double_attaque, self.pv_precedent = 100, False, False, False, 100
 
     def attaquer(self, autre_chateau):
         degats = 40 if self.double_attaque else 20
@@ -14,10 +15,14 @@ class Chateau:
         autre_chateau.pv -= degats
         self.pv -= 15 if autre_chateau.piege else 0
         autre_chateau.piege = False
+        if self.double_attaque:
+            print(f"{self.nom} a lancé une double attaque!")
         self.double_attaque = False
+        self.pv_precedent = self.pv
         
     def renforcer(self):
         self.pv += 10
+        self.pv_precedent = self.pv
 
     def activer_bouclier(self):
         self.bouclier = True
@@ -27,8 +32,18 @@ class Chateau:
 
     def preparer_double_attaque(self):
         self.double_attaque = True
+        print(f"{self.nom} se prépare pour une double attaque!")
 
     est_detruit = lambda self: self.pv <= 0
+
+    def afficher_pv_change(self):
+        if self.pv > self.pv_precedent:
+            print(f"{self.nom} a gagné {self.pv - self.pv_precedent} points de vie.")
+        elif self.pv < self.pv_precedent:
+            print(f"{self.nom} a perdu {self.pv_precedent - self.pv} points de vie.")
+        else:
+            print(f"{self.nom} n'a pas changé de points de vie.")
+        self.pv_precedent = self.pv
 
 def decision_bot(chateau_bot, chateau_joueur):
     random_factor = random.random()
@@ -42,15 +57,17 @@ def decision_bot(chateau_bot, chateau_joueur):
 def affichage_ascii(chateau1, chateau2):
     trait = max(int(chateau1.pv) // 10, int(chateau2.pv) // 10)
     print(Fore.GREEN + "--------------------" + "-" * trait)
-    print(Fore.MAGENTA + "| Votre chateau : " + "♥" * (int(chateau1.pv) // 10) + " " * (trait - int(chateau1.pv) // 10))
-    print(Fore.RED + "| Château Ennemi : " + "♥" * (int(chateau2.pv) // 10) + " " * (trait - int(chateau2.pv) // 10))
+    print(Fore.MAGENTA + "| " + chateau1.nom + " : " + "♥" * (int(chateau1.pv) // 10) + " " * (trait - int(chateau1.pv) // 10))
+    print(Fore.RED + "| " + chateau2.nom + " : " + "♥" * (int(chateau2.pv) // 10) + " " * (trait - int(chateau2.pv) // 10))
     print(Fore.GREEN + "--------------------" + "-" * trait + Style.RESET_ALL)
 
 
 def jeu():
-    chateau1, chateau2, tour = Chateau(), Chateau(), 1
+    chateau1, chateau2, tour = Chateau("Votre chateau"), Chateau("Château Ennemi"), 1
     while not (chateau1.est_detruit() or chateau2.est_detruit()):
         affichage_ascii(chateau1, chateau2)
+        chateau1.afficher_pv_change()
+        chateau2.afficher_pv_change()
         action = input("Actions possibles : attaquer ⚔️ (a), renforcer 🍎 (r), bouclier 🛡️ (b), piège 🪤 (p), double attaque 🔫 (d)\nChoisissez une action : ")
         os.system("clear")
 
